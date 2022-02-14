@@ -1,0 +1,42 @@
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.pdb
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\ResolveAssemblyReference.cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.Properties.Resources.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.GenerateResource.Cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.2_X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.pdb
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.3\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.pdb
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ResolveAssemblyReference.cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.Properties.Resources.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.GenerateResource.Cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.4\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.pdb
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.exe
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.pdb
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ResolveAssemblyReference.cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.Properties.Resources.resources
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.GenerateResource.Cache
+G:\PCBProject\HidProject\New\Device\TestOK\DeviceCode\UHF\UHFCode\CF5300\CF Version\CF_SDK_V2.6\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.pdb
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.exe
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ResolveAssemblyReference.cache
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.Properties.Resources.resources
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.GenerateResource.Cache
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.exe
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\bin\x64\Debug\ReadCardDemo.pdb
+G:\UHF\UHFCode\CF5300\CF_SDK_V2.9\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ReadCardDemo.pdb
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csprojAssemblyReference.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.GenerateResource.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\WindowsApplication1.csproj.CoreCompileInputs.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.exe
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.exe
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C#\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.pdb

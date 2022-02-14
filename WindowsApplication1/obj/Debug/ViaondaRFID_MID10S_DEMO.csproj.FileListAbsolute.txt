@@ -1,0 +1,18 @@
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.exe
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.pdb
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csprojAssemblyReference.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\WindowsApplication1.Form1.resources
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.exe
+e:\_documentos\_projetos\RFid\Chafon\5300 SDK\CF_SDK_V3.0\X64\Com\C# v3\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csprojAssemblyReference.cache
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\WindowsApplication1.Form1.resources
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.pdb
