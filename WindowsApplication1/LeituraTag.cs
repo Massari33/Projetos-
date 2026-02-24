@@ -9,6 +9,6 @@ namespace ViaondaRFID_MID10S_DEMO {
         public string ant { get; set; }
         public string tag { get; set; }
         public int leituras { get; set; }
-        public string RSSI { get; set; }
+    
     }
 }

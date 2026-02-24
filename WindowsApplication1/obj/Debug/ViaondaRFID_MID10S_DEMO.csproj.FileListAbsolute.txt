@@ -16,3 +16,12 @@ D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.exe
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.AssemblyReference.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\WindowsApplication1.Form1.resources
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\Debug\Viaonda M-ID10S C# Demo.pdb

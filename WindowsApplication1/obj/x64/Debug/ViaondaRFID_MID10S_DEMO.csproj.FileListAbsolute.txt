@@ -15,3 +15,34 @@ D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\X64\Com\C# v3 - Novo\WindowsAppli
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\X64\Com\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\X64\Com\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.exe
 D:\Projetos\SDK\MID10S\MID10S_SDK4.0 - Viaonda\X64\Com\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.AssemblyReference.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.exe
+D:\Projetos\MID10S - SDK\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.exe
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.AssemblyReference.cache
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.exe
+Z:\Viaonda RFID\SDK\MID10S_C# Português\COM-HID C#\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\Viaonda M-ID10S C# Demo.pdb
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.AssemblyReference.cache
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.Properties.Resources.resources
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.GenerateResource.cache
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaRFID_MID10S_DEMO.csproj.CoreCompileInputs.cache
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Newtonsoft.Json.dll
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\Newtonsoft.Json.xml
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\ViaondaR.BF467606.Up2Date
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\WindowsApplication1.Form1.resources
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\M-ID10S.exe.config
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\M-ID10S.exe
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\bin\x64\Debug\M-ID10S.pdb
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\M-ID10S.exe
+C:\Users\Usuario\OneDrive\Documentos\1_teste_massari\10S\C# v3 - Novo\WindowsApplication1\obj\x64\Debug\M-ID10S.pdb

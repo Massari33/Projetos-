@@ -3,34 +3,333 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
-using System.Threading;
-using RFID;
-using System.Runtime.InteropServices;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
-using ViaondaRFID_MID10S_DEMO;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Newtonsoft.Json;
+using RFID;
 
 namespace WindowsApplication1 {
-    public partial class Form1 : Form {
-        DataTable Leitura = new DataTable();
 
-        public Form1() {
+
+
+    public partial class Form1 : Form
+    {
+
+
+
+        private void chbxPost_CheckedChanged(object sender, EventArgs e)
+        {
+            // Alterna postagens automáticas: inicia ou para o timer de post
+            // quando a checkbox é alterada. Valida o intervalo selecionado.
+            if (chbxPost.Checked)
+            {
+                if (TimerPost.SelectedItem != null)
+                {
+                    int segundos = Convert.ToInt32(TimerPost.SelectedItem);
+
+                    postTimer.Interval = segundos * 1000; // milissegundos
+                    postTimer.Start();
+                }
+                else
+                {
+                    MessageBox.Show("Selecione o tempo para o Post automático.");
+                    chbxPost.Checked = false;
+                }
+            }
+            else
+            {
+                postTimer.Stop();
+            }
+        }
+
+
+        private System.Windows.Forms.Timer postTimer = new System.Windows.Forms.Timer();
+
+        // Parâmetros de dispositivo (endereços usados nas chamadas de Get/Set)
+        // 01: Transport
+        // 02: WorkMode
+        // 03: DeviceAddr
+        // 04: FilterTime
+        // 05: RFPower
+        // 06: BeepEnable
+        // 07: UartBaudRate
+        private const byte PARAM_TRANSPORT = 0x01;
+        private const byte PARAM_WORKMODE = 0x02;
+        private const byte PARAM_RFPOWER = 0x05;
+        private const byte PARAM_BEEP = 0x06;
+
+        // Helpers para mapear índice do combobox de frequência <-> bytes
+        private static byte[] GetFreqBytesFromIndex(int index)
+        {
+            switch (index)
+            {
+                case 0: return new byte[] { 0x31, 0x80 }; // US/CA
+                case 1: return new byte[] { 0x4E, 0x00 }; // Europe
+                case 2: return new byte[] { 0x2C, 0xA3 }; // China/HK/TH
+                case 3: return new byte[] { 0x29, 0x9D }; // Korea/Japan
+                case 4: return new byte[] { 0x2E, 0x9F }; // Australia
+                case 5: return new byte[] { 0x2C, 0x81 }; // Singapore
+                case 6: return new byte[] { 0x31, 0xA7 }; // Taiwan
+                case 7: return new byte[] { 0x31, 0x99 }; // Brazil
+                case 8: return new byte[] { 0x1C, 0x99 }; // Israel
+                case 9: return new byte[] { 0x24, 0x9D }; // South Africa
+                case 10: return new byte[] { 0x28, 0xA1 }; // Malaysia
+                default: return new byte[] { 0x4E, 0x00 };
+            }
+        }
+
+        private static int GetFreqIndexFromBytes(byte[] b)
+        {
+            if (b == null || b.Length < 2) return -1;
+            if (b[0] == 0x31 && b[1] == 0x80) return 0;
+            if (b[0] == 0x4E && b[1] == 0x00) return 1;
+            if (b[0] == 0x2C && b[1] == 0xA3) return 2;
+            if (b[0] == 0x29 && b[1] == 0x9D) return 3;
+            if (b[0] == 0x2E && b[1] == 0x9F) return 4;
+            if (b[0] == 0x2C && b[1] == 0x81) return 5;
+            if (b[0] == 0x31 && b[1] == 0xA7) return 6;
+            if (b[0] == 0x31 && b[1] == 0x99) return 7;
+            if (b[0] == 0x1C && b[1] == 0x99) return 8;
+            if (b[0] == 0x24 && b[1] == 0x9D) return 9;
+            if (b[0] == 0x28 && b[1] == 0xA1) return 10;
+            return -1;
+        }
+
+
+        private IEnumerable<RfidPostModel> SelecionarPrimeirasLeiturasPorEpc(DataGridView grid)
+        {
+            // Retorna apenas a primeira leitura para cada EPC único (insensível a maiúsculas/minúsculas)
+            var vistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (row.IsNewRow) continue;
+
+                var epc = row.Cells["EPC"]?.Value?.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(epc)) continue;
+
+                // EPC repetido
+                if (!vistos.Add(epc))
+                    continue;
+
+                var antena = row.Cells["Ant"]?.Value?.ToString()?.Trim();
+
+                int leituras = 0;
+                var celLeituras = row.Cells["Leituras"]?.Value;
+                if (celLeituras != null && int.TryParse(celLeituras.ToString(), out var l))
+                    leituras = l;
+
+                yield return new RfidPostModel
+                {
+                    reading_reader_ip = txtIP.Text,               
+                    reading_reader_mac = txtMac.Text,             
+                    reading_antenna = 1,
+                    reading_rssi = 0,
+                    reading_epc_hex = epc,
+                    reading_movement_type = 1,                  
+                    reading_company_id = int.Parse(txtCompanyID.Text),
+                    reading_created_at = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                };
+            }
+        }
+
+        private async Task<bool> EnviarPostEmLoteAsync(List<RfidPostModel> dados, bool modoAutomatico = false)
+        {
+            // Envia um POST em lote com as leituras fornecidas como um array JSON.
+            // Se modoAutomatico for true, suprime diálogos da UI e registra silenciosamente.
+            var url = txtPostUrl.Text != null ? txtPostUrl.Text.Trim() : null;
+            if (string.IsNullOrWhiteSpace(url))
+                throw new ArgumentException("URL do endpoint não informada.");
+
+            // Monte o JSON como ARRAY puro: [ { ... }, { ... } ]
+            // Se seu backend exige um "wrapper" (ex.: { "leituras": [ ... ] }),
+            // veja a opção mais abaixo.
+            string json = JsonConvert.SerializeObject(dados, Formatting.Indented);
+
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Clear();
+
+                var token = txtToken.Text != null ? txtToken.Text.Trim() : null;
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    client.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+
+                // (Opcional) Se quiser declarar que aceita JSON de resposta:
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(
+                    new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json")
+                );
+                using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
+                using (var response = await client.PostAsync(url, content))
+                {
+                    string resposta = await response.Content.ReadAsStringAsync();
+
+                    bool sucesso = TratarResposta(response, resposta, modoAutomatico);
+
+
+                    return sucesso; // já encerra aqui
+                }
+
+
+            }
+        }
+
+
+
+
+        private bool TratarResposta(HttpResponseMessage response, string resposta, bool modoAutomatico)
+        {
+            // Trata códigos de resposta HTTP e exibe mensagens ou registra no log
+            // dependendo se estamos em modo automático.
+            if (response.IsSuccessStatusCode)
+            {
+                if (!modoAutomatico)
+                {
+                    MessageBox.Show(
+                        $"✅ Sucesso!\n\nStatus: {(int)response.StatusCode}\n\n{resposta}",
+                        "Sucesso",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information
+                    );
+                }
+                else
+                {
+                    // log silencioso
+                    txtLog.AppendText($"Resposta: [{(int)response.StatusCode}]  Enviado com sucesso\r\n");
+                }
+
+                return true;
+            }
+            else if ((int)response.StatusCode >= 400 &&
+                     (int)response.StatusCode < 500)
+            {
+                if (!modoAutomatico)
+                {
+                    MessageBox.Show(
+                        $"\n\nStatus: {(int)response.StatusCode}{resposta} ⚠ Erro na autorização\n\n",
+                        "Erro 4xx",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+                }
+                else
+                {
+                    txtLog.AppendText($"Resposta: [{(int)response.StatusCode}] Não autorizado, verifque credenciais e cadastro\r\n");
+                }
+
+                return false;
+            }
+            else if ((int)response.StatusCode >= 500)
+            {
+                if (!modoAutomatico)
+                {
+                    MessageBox.Show(
+                        $"\n\nStatus: {(int)response.StatusCode}{resposta} Erro do Servidor\n\n",
+                        "Erro 5xx",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                }
+                else
+                {
+                    txtLog.AppendText($"Resposta: [{(int)response.StatusCode}] Erro Servidor\r\n");
+                }
+
+                return false;
+            }
+
+            return false;
+        }
+
+        private async Task<bool> EnviarPostAsync(RfidPostModel dados, bool modoAutomatico)
+        {
+            // Envia uma leitura única como JSON para o endpoint configurado.
+            // Retorna true quando o servidor confirmou sucesso.
+            try
+            {
+                string url = txtPostUrl.Text.Trim();
+
+                using (HttpClient client = new HttpClient())
+                {
+                    string json = JsonConvert.SerializeObject(dados);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    HttpResponseMessage response =
+                        await client.PostAsync(url, content);
+
+                    string resposta =
+                        await response.Content.ReadAsStringAsync();
+
+                    bool sucesso = TratarResposta(response, resposta, modoAutomatico);
+
+                    return sucesso; // 🔥 RETORNA aqui
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                if (!modoAutomatico)
+                    MessageBox.Show("Erro de conexão: " + ex.Message);
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (!modoAutomatico)
+                    MessageBox.Show("Erro inesperado: " + ex.Message);
+
+                return false;
+            }
+        }
+
+
+
+
+
+        DataTable Leitura = new DataTable();
+        private DataTable leituraPost = new DataTable();
+
+        public Form1()
+        {
             InitializeComponent();
             byte[] arrBuffer = new byte[256];
         }
 
 
+        public class RfidPostModel
+        {
+            public string reading_reader_ip { get; set; }
+            public string reading_reader_mac { get; set; }
+            public int reading_antenna { get; set; }
+            public int reading_rssi { get; set; }
+            public string reading_epc_hex { get; set; }
+            public int reading_movement_type { get; set; }
+            public int reading_company_id { get; set; }
+            public string reading_created_at { get; set; }
+
+        }
+
+       
 
         delegate void SetTextCallback(string text);
-        private void SetText(string text) {
-            if (this.txtLog.InvokeRequired) {
+        private void SetText(string text)
+        {
+            // Adiciona texto ao log (`txtLog`) de forma segura entre threads.
+            if (this.txtLog.InvokeRequired)
+            {
                 SetTextCallback d = new SetTextCallback(SetText);
                 this.Invoke(d, new object[] { text });
             }
-            else {
-                this.txtLog.Text = this.txtLog.Text + text;
+            else
+            {
+                this.txtLog.Text += text;
                 this.txtLog.SelectionStart = this.txtLog.Text.Length;
                 this.txtLog.ScrollToCaret();
             }
@@ -41,22 +340,49 @@ namespace WindowsApplication1 {
 
 
 
+
         private void Form1_Load(object sender, EventArgs e) {
+
+            TimerPost.SelectedItem = "3";
+
+            postTimer.Tick += PostTimer_Tick;
+
+            // Criação das colunas do DataTable
+            //leituraPost.Columns.Add("Tipo");
+            leituraPost.Columns.Add("Ant");
+            leituraPost.Columns.Add("EPC");
+            leituraPost.Columns.Add("Leituras", typeof(int));
+           
+
+            // Vincula ao grid
+            dgLeituras.DataSource = leituraPost;
+
+            // Configuração visual do grid
+            dgLeituras.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgLeituras.RowHeadersVisible = false;
+            dgLeituras.AllowUserToAddRows = false;
+            dgLeituras.AllowUserToResizeRows = false;
+            dgLeituras.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgLeituras.MultiSelect = false;
+            dgLeituras.ColumnHeadersVisible = false; // começa escondido
+
+
             Block();
             rbCom.Checked = true;
-            cbRegiao.SelectedIndex = 0;
+            cbRegiao.SelectedIndex = 1;
+
             tabelaLeitura();
         }
 
         private void tabelaLeitura() {
-            Leitura.Columns.Add("Tipo");
+            // Prepara o esquema do DataTable `Leitura` usado para leituras ao vivo.
             Leitura.Columns.Add("Ant");
             Leitura.Columns.Add("EPC");
             Leitura.Columns.Add("Leituras");
-            Leitura.Columns.Add("RSSI");
         }
 
         private void Block() {
+            // Desabilita controles que não devem estar disponíveis enquanto desconectado.
             rbCom.Enabled = true;
             rbHid.Enabled = true;
             btReload.Enabled = true;
@@ -70,7 +396,7 @@ namespace WindowsApplication1 {
             btSetPotencia.Enabled = false;
             btGetPotencia.Enabled = false;
             btLimpar.Enabled = false;
-            btIniciar.Enabled = false;
+            //btIniciar.Enabled = false;
             cbRegiao.Enabled = false;
             txtStart.Enabled = false;
             txtLenght.Enabled = false;
@@ -81,8 +407,8 @@ namespace WindowsApplication1 {
             ckAuto.Enabled = false;
             btLer.Enabled = false;
             btGravar.Enabled = false;
-            dgLeitura.Enabled = false;
-            btLimpaDg.Enabled = false;
+            //dgLeitura.Enabled = false;
+            //btLimpaDg.Enabled = false;
             cbFreq.Enabled = false;
             btSetFreq.Enabled = false;
             btGetFreq.Enabled = false;
@@ -92,6 +418,7 @@ namespace WindowsApplication1 {
         }
 
         private void Unblock() {
+            // Habilita controles disponíveis quando conectado ao leitor.
             rbCom.Enabled = true;
             rbHid.Enabled = true;
             btConectar.Enabled = false;
@@ -105,7 +432,7 @@ namespace WindowsApplication1 {
             btSetPotencia.Enabled = true;
             btGetPotencia.Enabled = true;
             btLimpar.Enabled = true;
-            btIniciar.Enabled = true;
+            //btIniciar.Enabled = true;
             cbRegiao.Enabled = true;
             txtStart.Enabled = true;
             txtLenght.Enabled = true;
@@ -116,8 +443,8 @@ namespace WindowsApplication1 {
             ckAuto.Enabled = true;
             btLer.Enabled = true;
             btGravar.Enabled = true;
-            dgLeitura.Enabled = true;
-            btLimpaDg.Enabled = true;
+            //dgLeitura.Enabled = true;
+            //btLimpaDg.Enabled = true;
             cbFreq.Enabled = true;
             btSetFreq.Enabled = true;
             btGetFreq.Enabled = true;
@@ -127,6 +454,7 @@ namespace WindowsApplication1 {
         }
 
         private void btConectar_Click(object sender, EventArgs e) {
+            // Conecta ao dispositivo via COM ou HID, dependendo da seleção.
             if (rbCom.Checked) {
                 if (cbPorta.Items.Count == 0) {
                     this.SetText("Não há portas disponíveis\r\n");
@@ -152,14 +480,22 @@ namespace WindowsApplication1 {
                     str = String.Format("SoftVer:{0:D}.{0:D}\r\n", arrBuffer[0] >> 4, arrBuffer[0] & 0x0F);
                     this.SetText(str);
                     str = String.Format("HardVer:{0:D}.{0:D}\r\n", arrBuffer[1] >> 4, arrBuffer[1] & 0x0F);
-                    this.SetText(str);
                     str = "SN:";
-                    for (int i = 0; i < 7; i++) {
+                    string sn = "";
+
+                    for (int i = 0; i < 7; i++)
+                    {
                         str1 = String.Format("{0:X2}", arrBuffer[2 + i]);
-                        str = str + str1;
+                        sn += str1;     // monta só o número
+                        str += str1;    // continua mostrando no log
                     }
-                    str = str + "\r\n";
+
+                    str += "\r\n";
                     this.SetText(str);
+
+                    // 🔥 Aqui preenche o txtMac automaticamente
+                    txtMac.Text = sn;
+
                     Unblock();
                     CarregaBeep();
                     CarregaPotencia();
@@ -194,12 +530,20 @@ namespace WindowsApplication1 {
                 str = String.Format("HardVer:{0:D}.{0:D}\r\n", arrBuffer[1] >> 4, arrBuffer[1] & 0x0F);
                 this.SetText(str);
                 str = "SN:";
-                for (int i = 0; i < 7; i++) {
+                string sn = "";
+
+                for (int i = 0; i < 7; i++)
+                {
                     str1 = String.Format("{0:X2}", arrBuffer[2 + i]);
-                    str = str + str1;
+                    sn += str1;     // monta só o número
+                    str += str1;    // continua mostrando no log
                 }
-                str = str + "\r\n";
+
+                str += "\r\n";
                 this.SetText(str);
+
+                // 🔥 Aqui preenche o txtMac automaticamente
+                txtMac.Text = sn;
                 Unblock();
                 CarregaBeep();
                 CarregaPotencia();
@@ -215,6 +559,7 @@ namespace WindowsApplication1 {
         }
 
         private void btDesconectar_Click(object sender, EventArgs e) {
+            // Fecha a conexão com o dispositivo e atualiza o estado da UI.
             if (rbCom.Checked) {
                 RFID.CFComApi.CFCom_CloseDevice();
                 Block();
@@ -232,6 +577,7 @@ namespace WindowsApplication1 {
         }
 
         private void btModo_Click(object sender, EventArgs e) {
+            // Define o modo de trabalho do leitor (escravo/autônomo) no dispositivo.
             if (rbCom.Checked) {
                 RFID.CFComApi.CFCom_ClearTagBuf();
                 byte bParamAddr = 0;
@@ -293,6 +639,7 @@ namespace WindowsApplication1 {
         }
 
         private void rbCom_CheckedChanged(object sender, EventArgs e) {
+            // Atualiza a lista de portas COM disponíveis quando a opção COM é selecionada.
             if (rbCom.Checked) {
                 cbPorta.Items.Clear();
                 string[] ports = SerialPort.GetPortNames();
@@ -309,6 +656,7 @@ namespace WindowsApplication1 {
         }
 
         private void rbHid_CheckedChanged(object sender, EventArgs e) {
+            // Atualiza a lista de dispositivos HID disponíveis quando HID é selecionado.
             if (rbHid.Checked) {
                 string strSN = "";
                 byte[] arrBuffer = new byte[256];
@@ -327,6 +675,7 @@ namespace WindowsApplication1 {
         }
 
         private void btReload_Click(object sender, EventArgs e) {
+            // Recarrega a lista de portas/dispositivos disponíveis.
             if (rbCom.Checked) {
                 cbPorta.Items.Clear();
                 string[] ports = SerialPort.GetPortNames();
@@ -356,6 +705,7 @@ namespace WindowsApplication1 {
         }
 
         private void btSetPotencia_Click(object sender, EventArgs e) {
+            // Define o parâmetro de potência RF no dispositivo.
             byte bParamAddr = 0;
             byte bValue = 0;
 
@@ -388,6 +738,7 @@ namespace WindowsApplication1 {
         }
 
         private void CarregaInterface() {
+            // Lê o parâmetro de interface (transporte) do dispositivo e atualiza a UI.
             byte bParamAddr = 0;
             byte[] bValue = new byte[2];
 
@@ -419,6 +770,7 @@ namespace WindowsApplication1 {
         }
 
         private void CarregaBeep() {
+            // Lê o estado atual do beep (habilitado/desabilitado) do dispositivo.
             byte bParamAddr = 0;
             byte[] bValue = new byte[2];
 
@@ -456,6 +808,7 @@ namespace WindowsApplication1 {
         }
 
         private void CarregaPotencia() {
+            // Lê o parâmetro de potência RF do dispositivo e atualiza controles da UI.
             byte bParamAddr = 0;
             byte[] bValue = new byte[2];
 
@@ -490,6 +843,7 @@ namespace WindowsApplication1 {
             this.SetText(str1);
         }
         private void CarregaModo() {
+            // Lê o modo de trabalho atual (escravo/autônomo) do dispositivo.
             byte bParamAddr = 0;
             byte[] bValue = new byte[2];
 
@@ -528,6 +882,7 @@ namespace WindowsApplication1 {
         }
 
         private void CarregaFrequencia() {
+            // Lê a configuração de frequência do dispositivo e ajusta o índice do combobox.
             byte[] bFreq = new byte[2];
 
             if (rbCom.Checked) {
@@ -543,47 +898,16 @@ namespace WindowsApplication1 {
                 }
                 txtLog.Focus();
             }
-
-
-            if (bFreq[0] == 0x31 && bFreq[1] == 0x80) {
-                cbFreq.SelectedIndex = 0;
-            }
-            else if (bFreq[0] == 0x4E && bFreq[1] == 0x00) {
-                cbFreq.SelectedIndex = 1;
-            }
-            else if (bFreq[0] == 0x2C && bFreq[1] == 0xA3) {
-                cbFreq.SelectedIndex = 2;
-            }
-            else if (bFreq[0] == 0x29 && bFreq[1] == 0x9D) {
-                cbFreq.SelectedIndex = 3;
-            }
-            else if (bFreq[0] == 0x2E && bFreq[1] == 0x9F) {
-                cbFreq.SelectedIndex = 4;
-            }
-            else if (bFreq[0] == 0x2C && bFreq[1] == 0x81) {
-                cbFreq.SelectedIndex = 5;
-            }
-            else if (bFreq[0] == 0x31 && bFreq[1] == 0xA7) {
-                cbFreq.SelectedIndex = 6;
-            }
-            else if (bFreq[0] == 0x31 && bFreq[1] == 0x99) {
-                cbFreq.SelectedIndex = 7;
-            }
-            else if (bFreq[0] == 0x1C && bFreq[1] == 0x99) {
-                cbFreq.SelectedIndex = 8;
-            }
-            else if (bFreq[0] == 0x24 && bFreq[1] == 0x9D) {
-                cbFreq.SelectedIndex = 9;
-            }
-            else if (bFreq[0] == 0x28 && bFreq[1] == 0xA1) {
-                cbFreq.SelectedIndex = 10;
-            }
+            int idx = GetFreqIndexFromBytes(bFreq);
+            if (idx >= 0)
+                cbFreq.SelectedIndex = idx;
 
             this.SetText("Sucesso ao Obter Frequência\r\n");
         }
 
 
         private void btGetPotencia_Click(object sender, EventArgs e) {
+            // Consulta a potência RF e exibe o resultado na UI.
             byte bParamAddr = 0;
             byte[] bValue = new byte[2];
 
@@ -619,6 +943,7 @@ namespace WindowsApplication1 {
         }
 
         private void btGpioOn_Click(object sender, EventArgs e) {
+            // Alterna o relé GPIO do dispositivo (ligar/desligar) e atualiza o texto do botão.
             if (btGpioOn.Text == "Desligado") {
 
                 if (rbCom.Checked) {
@@ -662,6 +987,7 @@ namespace WindowsApplication1 {
 
 
         private void btBeepOn_Click(object sender, EventArgs e) {
+            // Alterna o beep do dispositivo (ligar/desligar) e persiste a configuração no dispositivo.
             if (rbCom.Checked) {
                 RFID.CFComApi.CFCom_ClearTagBuf();
             }
@@ -721,69 +1047,27 @@ namespace WindowsApplication1 {
         }
 
         private void btSetFreq_Click(object sender, EventArgs e) {
-            byte[] bFreq = new byte[2];
+            // Aplica a região de frequência selecionada ao dispositivo.
+            byte[] bFreq = GetFreqBytesFromIndex(cbFreq.SelectedIndex);
 
-            switch (cbFreq.SelectedIndex) {
-                case 0:
-                    bFreq[0] = 0x31;
-                    bFreq[1] = 0x80;
-                    break;
-                case 1:
-                    bFreq[0] = 0x4E;
-                    bFreq[1] = 0x00;
-                    break;
-                case 2:
-                    bFreq[0] = 0x2C;
-                    bFreq[1] = 0xA3;
-                    break;
-                case 3:
-                    bFreq[0] = 0x29;
-                    bFreq[1] = 0x9D;
-                    break;
-                case 4:
-                    bFreq[0] = 0x2E;
-                    bFreq[1] = 0x9F;
-                    break;
-                case 5:
-                    bFreq[0] = 0x2C;
-                    bFreq[1] = 0x81;
-                    break;
-                case 6:
-                    bFreq[0] = 0x31;
-                    bFreq[1] = 0xA7;
-                    break;
-                case 7:
-                    bFreq[0] = 0x31;
-                    bFreq[1] = 0x99;
-                    break;
-                case 8:
-                    bFreq[0] = 0x1C;
-                    bFreq[1] = 0x99;
-                    break;
-                case 9:
-                    bFreq[0] = 0x24;
-                    bFreq[1] = 0x9D;
-                    break;
-                case 10:
-                    bFreq[0] = 0x28;
-                    bFreq[1] = 0xA1;
-                    break;
-
-            }
-
-            if (rbCom.Checked) {
-                if (RFID.CFComApi.CFCom_SetFreq(0xFF, bFreq) == false) {
+            if (rbCom.Checked)
+            {
+                if (RFID.CFComApi.CFCom_SetFreq(0xFF, bFreq) == false)
+                {
                     this.SetText("Falha ao Definir Frequência\r\n");
                     return;
                 }
             }
-            else if (rbHid.Checked) {
-                if (RFID.CFHidApi.CFHid_SetFreq(0xFF, bFreq) == false) {
+            else if (rbHid.Checked)
+            {
+                if (RFID.CFHidApi.CFHid_SetFreq(0xFF, bFreq) == false)
+                {
                     this.SetText("Falha ao Definir Frequência\r\n");
                     return;
                 }
                 txtLog.Focus();
             }
+
             this.SetText("Sucesso ao Definir Frequência\r\n");
 
         }
@@ -791,10 +1075,12 @@ namespace WindowsApplication1 {
 
 
         private void btLimpar_Click(object sender, EventArgs e) {
+            // Limpa o textbox principal de log.
             txtLog.Text = "";
         }
 
         private void btGetFreq_Click(object sender, EventArgs e) {
+            // Lê e exibe a frequência atual do dispositivo.
             byte[] bFreq = new byte[2];
 
             if (rbCom.Checked) {
@@ -810,52 +1096,22 @@ namespace WindowsApplication1 {
                 }
                 txtLog.Focus();
             }
-
-            if (bFreq[0] == 0x31 && bFreq[1] == 0x80) {
-                cbFreq.SelectedIndex = 0;
-            }
-            else if (bFreq[0] == 0x4E && bFreq[1] == 0x00) {
-                cbFreq.SelectedIndex = 1;
-            }
-            else if (bFreq[0] == 0x2C && bFreq[1] == 0xA3) {
-                cbFreq.SelectedIndex = 2;
-            }
-            else if (bFreq[0] == 0x29 && bFreq[1] == 0x9D) {
-                cbFreq.SelectedIndex = 3;
-            }
-            else if (bFreq[0] == 0x2E && bFreq[1] == 0x9F) {
-                cbFreq.SelectedIndex = 4;
-            }
-            else if (bFreq[0] == 0x2C && bFreq[1] == 0x81) {
-                cbFreq.SelectedIndex = 5;
-            }
-            else if (bFreq[0] == 0x31 && bFreq[1] == 0xA7) {
-                cbFreq.SelectedIndex = 6;
-            }
-            else if (bFreq[0] == 0x31 && bFreq[1] == 0x99) {
-                cbFreq.SelectedIndex = 7;
-            }
-            else if (bFreq[0] == 0x1C && bFreq[1] == 0x99) {
-                cbFreq.SelectedIndex = 8;
-            }
-            else if (bFreq[0] == 0x24 && bFreq[1] == 0x9D) {
-                cbFreq.SelectedIndex = 9;
-            }
-            else if (bFreq[0] == 0x28 && bFreq[1] == 0xA1) {
-                cbFreq.SelectedIndex = 10;
-            }
+            int idx = GetFreqIndexFromBytes(bFreq);
+            if (idx >= 0)
+                cbFreq.SelectedIndex = idx;
 
             this.SetText("Sucesso ao Obter Frequência\r\n");
         }
 
         private void btIniciar_Click(object sender, EventArgs e) {
+            // Inicia/para o timer de inventário contínuo (leituras) e valida o modo.
 
             if (rbHid.Checked) {
                 txtLog.Focus();
                 RFID.CFHidApi.CFHid_ClearTagBuf();
 
-                byte bParamAddr = 0;
-                byte bValue = 0;
+               
+               
 
                 /*  01: Transport
                     02: WorkMode
@@ -880,19 +1136,7 @@ namespace WindowsApplication1 {
                     return;
                 }
 
-                if (btIniciar.Text == "Iniciar") {
-                    dgLeitura.DataSource = null;
-                    dgLeitura.Rows.Clear();
-                    Leitura.Rows.Clear();
-                    btIniciar.Text = "Parar";
-                    groupBox9.Enabled = false;
-                    btLimpaDg.Enabled = false;
-                }
-                else if (btIniciar.Text == "Parar") {
-                    btIniciar.Text = "Iniciar";
-                    btLimpaDg.Enabled = true;
-                    groupBox9.Enabled = true;
-                }
+
 
                 timerLeitura.Enabled = !timerLeitura.Enabled;
 
@@ -901,7 +1145,7 @@ namespace WindowsApplication1 {
                 /* MessageBox.Show("Não permitido em Modo HID\r\nVerifique o log na parte inferior para verificar leituras HID\r\n");
                  this.SetText("Modo HID");
                  btIniciar.Text = "Iniciar";
-                 btLimpaDg.Enabled = true;
+                 //btLimpaDg.Enabled = true;
                  groupBox9.Enabled = true;
                  timerLeitura.Enabled = false;
                  txtLog.Focus();*/
@@ -909,8 +1153,8 @@ namespace WindowsApplication1 {
             else if (rbCom.Checked) {
                 RFID.CFComApi.CFCom_ClearTagBuf();
 
-                byte bParamAddr = 0;
-                byte bValue = 0;
+                
+                
 
                 /*  01: Transport
                     02: WorkMode
@@ -919,7 +1163,7 @@ namespace WindowsApplication1 {
                     05: RFPower
                     06: BeepEnable
                     07: UartBaudRate*/
-                bParamAddr = 0x02;
+               
                 //bValue = 26;   //RF = 26
 
                 CarregaModo();
@@ -930,19 +1174,7 @@ namespace WindowsApplication1 {
                     return;
                 }
 
-                if (btIniciar.Text == "Iniciar") {
-                    dgLeitura.DataSource = null;
-                    dgLeitura.Rows.Clear();
-                    Leitura.Rows.Clear();
-                    btIniciar.Text = "Parar";
-                    groupBox9.Enabled = false;
-                    btLimpaDg.Enabled = false;
-                }
-                else if (btIniciar.Text == "Parar") {
-                    btIniciar.Text = "Iniciar";
-                    btLimpaDg.Enabled = true;
-                    groupBox9.Enabled = true;
-                }
+
 
                 timerLeitura.Enabled = !timerLeitura.Enabled;
 
@@ -951,6 +1183,7 @@ namespace WindowsApplication1 {
         }
 
         private void btLer_Click(object sender, EventArgs e) {
+            // Lê banco de memória de uma tag e exibe os dados hex retornados.
             byte[] arrBuffer = new byte[4096];
             byte Mem = 0x02;
             byte WordPtr = 0x00;
@@ -959,7 +1192,7 @@ namespace WindowsApplication1 {
             ushort iTotalLen = 0;
             byte[] Password = new byte[4];
 
-            string retorno = "";
+           
 
             Mem = Convert.ToByte(cbRegiao.SelectedIndex);
 
@@ -1004,7 +1237,7 @@ namespace WindowsApplication1 {
                 int iTagNumber = 0;
                 iTagLength = iTotalLen;
                 iTagNumber = iNum;
-                int iIndex = 0;
+                
                 int iLength = 0;
                 byte bPackLength = 0;
                 int i = 0;
@@ -1082,7 +1315,6 @@ namespace WindowsApplication1 {
                     int iTagNumber = 0;
                     iTagLength = iTotalLen;
                     iTagNumber = iNum;
-                    int iIndex = 0;
                     int iLength = 0;
                     byte bPackLength = 0;
                     int i = 0;
@@ -1142,7 +1374,6 @@ namespace WindowsApplication1 {
                     int iTagNumber = 0;
                     iTagLength = iTotalLen;
                     iTagNumber = iNum;
-                    int iIndex = 0;
                     int iLength = 0;
                     byte bPackLength = 0;
                     int i = 0;
@@ -1173,6 +1404,7 @@ namespace WindowsApplication1 {
         }
 
         private void btGravar_Click(object sender, EventArgs e) {
+            // Grava dados em uma tag (operação única) ou habilita gravação automática.
             byte[] arrBuffer = new byte[4096];
             byte Mem = 0x01;
             byte WordPtr = 0x02;
@@ -1218,7 +1450,7 @@ namespace WindowsApplication1 {
                         txtLenght.Enabled = false;
                         txtStart.Enabled = false;
                         btLer.Enabled = false;
-                        btIniciar.Enabled = false;
+                        //btIniciar.Enabled = false;
                     }
                     else if (btGravar.Text == "Parar") {
                         timerGravar.Enabled = false;
@@ -1227,7 +1459,7 @@ namespace WindowsApplication1 {
                         txtLenght.Enabled = true;
                         txtStart.Enabled = true;
                         btLer.Enabled = true;
-                        btIniciar.Enabled = true;
+                        //btIniciar.Enabled = true;
                         btGravar.Text = "Gravar";
                     }
                 }
@@ -1261,7 +1493,7 @@ namespace WindowsApplication1 {
                             iValue = int.Parse(sData.Substring(20));
                             iValue++;
                         }
-                        catch (Exception ex) {
+                        catch (Exception ) {
                             iValue = 1;
                         }
 
@@ -1293,6 +1525,7 @@ namespace WindowsApplication1 {
         }
 
         private void timerGravar_Tick(object sender, EventArgs e) {
+            // Manipulador para gravações automáticas repetidas quando `ckAuto` está habilitado.
 
             byte[] arrBuffer = new byte[4096];
             byte Mem = 0x02;
@@ -1347,7 +1580,7 @@ namespace WindowsApplication1 {
                     iValue = int.Parse(sData.Substring(20));
                     iValue++;
                 }
-                catch (Exception ex) {
+                catch (Exception ) {
                     iValue = 1;
                 }
 
@@ -1371,6 +1604,7 @@ namespace WindowsApplication1 {
         }
 
         public static byte[] StringToByteArray(string hex) {
+            // Converte uma string hex (sem separadores) para um array de bytes.
             return Enumerable.Range(0, hex.Length)
                              .Where(x => x % 2 == 0)
                              .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
@@ -1418,7 +1652,9 @@ namespace WindowsApplication1 {
                 string str2 = "";
                 string str1 = "";
                 str1 = arrBuffer[1 + iLength + 0].ToString("X2");
-                str2 = str2 + "Tipo:" + str1 + " ";  //Tag Type
+                //str2 = str2 + "Tipo:" + str1 + " ";  //Tag Type
+
+                Console.WriteLine(arrBuffer[1 + iLength + 1].ToString("X2"));
 
                 tipo = str1;
 
@@ -1456,23 +1692,23 @@ namespace WindowsApplication1 {
                     }
                 }
 
-                Leitura.Rows.Add(tipo, ant, tag, leituras, rssi);
+                Leitura.Rows.Add( ant, tag, leituras);
                 Leitura.AcceptChanges();
 
                 Leitura.DefaultView.Sort = "Leituras DESC";
 
-                dgLeitura.DataSource = Leitura;
+                dgLeituras.DataSource = Leitura;
 
             }
         }
 
         private void btLimpaDg_Click(object sender, EventArgs e) {
-            dgLeitura.DataSource = null;
-            dgLeitura.Rows.Clear();
+            // Clear the in-memory table of live readings.
             Leitura.Rows.Clear();
         }
 
         private void btInterface_Click(object sender, EventArgs e) {
+            // Set the device transport/interface parameter (USB/other).
             RFID.CFHidApi.CFHid_ClearTagBuf();
             byte bParamAddr = 0;
             byte bValue = 0;
@@ -1500,6 +1736,538 @@ namespace WindowsApplication1 {
             }
             this.SetText("Interface Definido com sucesso\r\n");
             txtLog.Focus();
+        }
+
+        private void label9_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void iniciar_PostClick(object sender, EventArgs e)
+        {
+            // (Unused placeholder) Start/stop logic for posting reads.
+
+            if (rbHid.Checked)
+            {
+                txtLog.Focus();
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+
+
+
+                /*  01: Transport
+                    02: WorkMode
+                    03: DeviceAddr
+                    04: FilterTime
+                    05: RFPower
+                    06: BeepEnable
+                    07: UartBaudRate*/
+
+                //bValue = 26;   //RF = 26
+                CarregaInterface();
+                CarregaModo();
+                if (cbInterface.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Interface USB!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (cbModo.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Modo Escravo!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (btnIniciarLeituraPost.Text == "Iniciar")
+                {
+                    dgLeituras.DataSource = null;
+                    dgLeituras.Rows.Clear();
+                    Leitura.Rows.Clear();
+                    btnIniciarLeituraPost.Text = "Parar";
+                    groupBox9.Enabled = false;
+                    //btLimpaDg.Enabled = false;
+                }
+                else if (btnIniciarLeituraPost.Text == "Parar")
+                {
+                    btnIniciarLeituraPost.Text = "Iniciar";
+                    //btLimpaDg.Enabled = true;
+                    groupBox9.Enabled = true;
+                }
+
+                timerLeitura.Enabled = !timerLeitura.Enabled;
+
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+
+                /* MessageBox.Show("Não permitido em Modo HID\r\nVerifique o log na parte inferior para verificar leituras HID\r\n");
+                 this.SetText("Modo HID");
+                 btIniciar.Text = "Iniciar";
+                 //btLimpaDg.Enabled = true;
+                 groupBox9.Enabled = true;
+                 timerLeitura.Enabled = false;
+                 txtLog.Focus();*/
+            }
+            else if (rbCom.Checked)
+            {
+                RFID.CFComApi.CFCom_ClearTagBuf();
+
+ 
+
+                /*  01: Transport
+                    02: WorkMode
+                    03: DeviceAddr
+                    04: FilterTime
+                    05: RFPower
+                    06: BeepEnable
+                    07: UartBaudRate*/
+              
+                //bValue = 26;   //RF = 26
+
+                CarregaModo();
+
+                if (cbModo.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Modo Escravo!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (btnIniciarLeituraPost.Text == "Iniciar")
+                {
+                    dgLeituras.DataSource = null;
+                    dgLeituras.Rows.Clear();
+                    Leitura.Rows.Clear();
+                    btnIniciarLeituraPost.Text = "Parar";
+                    groupBox9.Enabled = false;
+                    //btLimpaDg.Enabled = false;
+                }
+                else if (btnIniciarLeituraPost.Text == "Parar")
+                {
+                    btnIniciarLeituraPost.Text = "Iniciar";
+                    //btLimpaDg.Enabled = true;
+                    groupBox9.Enabled = true;
+                }
+
+                timerLeitura.Enabled = !timerLeitura.Enabled;
+
+                RFID.CFComApi.CFCom_ClearTagBuf();
+            }
+        }
+
+        private void cbRegiao_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void textBox6_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void iniciar_post_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void groupBox1_Enter(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label9_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnIniciarLeituraPost_Click(object sender, EventArgs e)
+        {
+            // Start/stop reading loop used specifically when posting readings.
+            dgLeituras.ColumnHeadersVisible = true;
+            if (rbHid.Checked)
+            {
+                txtLog.Focus();
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+
+ 
+                /*  01: Transport
+                    02: WorkMode
+                    03: DeviceAddr
+                    04: FilterTime
+                    05: RFPower
+                    06: BeepEnable
+                    07: UartBaudRate*/
+
+                //bValue = 26;   //RF = 26
+                CarregaInterface();
+                CarregaModo();
+                if (cbInterface.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Interface USB!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (cbModo.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Modo Escravo!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (btnIniciarLeituraPost.Text == "Iniciar")
+                {
+                    dgLeituras.DataSource = null;
+                    dgLeituras.Rows.Clear();
+                    Leitura.Rows.Clear();
+                    btnIniciarLeituraPost.Text = "Parar";
+                    groupBox9.Enabled = false;
+                    //btLimpaDg.Enabled = false;
+                }
+                else if (btnIniciarLeituraPost.Text == "Parar")
+                {
+                    btnIniciarLeituraPost.Text = "Iniciar";
+                    //btLimpaDg.Enabled = true;
+                    groupBox9.Enabled = true;
+                }
+
+                timerLeitura.Enabled = !timerLeitura.Enabled;
+
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+
+                /* MessageBox.Show("Não permitido em Modo HID\r\nVerifique o log na parte inferior para verificar leituras HID\r\n");
+                 this.SetText("Modo HID");
+                 btIniciar.Text = "Iniciar";
+                 //btLimpaDg.Enabled = true;
+                 groupBox9.Enabled = true;
+                 timerLeitura.Enabled = false;
+                 txtLog.Focus();*/
+            }
+            else if (rbCom.Checked)
+            {
+                RFID.CFComApi.CFCom_ClearTagBuf();
+
+
+                /*  01: Transport
+                    02: WorkMode
+                    03: DeviceAddr
+                    04: FilterTime
+                    05: RFPower
+                    06: BeepEnable
+                    07: UartBaudRate*/
+
+                //bValue = 26;   //RF = 26
+
+                CarregaModo();
+
+                if (cbModo.SelectedIndex == 1)
+                {
+                    MessageBox.Show("Mude para Modo Escravo!\r\n");
+                    this.SetText("Falha\r\n");
+                    return;
+                }
+
+                if (btnIniciarLeituraPost.Text == "Iniciar")
+                {
+                    dgLeituras.DataSource = null;
+                    dgLeituras.Rows.Clear();
+                    Leitura.Rows.Clear();
+                    btnIniciarLeituraPost.Text = "Parar";
+                    groupBox9.Enabled = false;
+                    //btLimpaDg.Enabled = false;
+                }
+                else if (btnIniciarLeituraPost.Text == "Parar")
+                {
+                    btnIniciarLeituraPost.Text = "Iniciar";
+                    //btLimpaDg.Enabled = true;
+                    groupBox9.Enabled = true;
+                }
+
+                timerLeitura.Enabled = !timerLeitura.Enabled;
+
+                RFID.CFComApi.CFCom_ClearTagBuf();
+            }
+
+        }
+
+
+
+        private async Task ExecutarPostAsync(bool modoAutomatico = false)
+        {
+            // Build payload from current readings, send batch POST and
+            // clear buffers and UI on success. In automatic mode, minimize UI.
+            var payload = SelecionarPrimeirasLeiturasPorEpc(dgLeituras).ToList();
+
+            if (payload.Count == 0)
+            {
+                if (!modoAutomatico)
+                    MessageBox.Show("Nenhum item para enviar.");
+
+                return;
+            }
+
+            //  ENVIA PRIMEIRO
+            bool enviado = await EnviarPostEmLoteAsync(payload, modoAutomatico);
+
+            if (!enviado)
+            {
+                return;
+            }
+
+            //  LIMPA GRID
+            dgLeituras.DataSource = null;
+            dgLeituras.Rows.Clear();
+            Leitura.Rows.Clear();
+
+            //  LIMPA BUFFER DO LEITOR
+            if (rbCom.Checked)
+                RFID.CFComApi.CFCom_ClearTagBuf();
+
+            if (rbHid.Checked)
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+
+            if (!modoAutomatico)
+                MessageBox.Show($"{payload.Count} item(ns) enviados.");
+            
+
+        }
+
+
+
+
+        private async void btnPostar_Click(object sender, EventArgs e)
+        {
+            // Manual trigger to post current readings to configured endpoint.
+            await ExecutarPostAsync(false);
+        }
+
+        private async void PostTimer_Tick(object sender, EventArgs e)
+        {
+            // Timer tick for automatic posting: stop timer while sending
+            // and restart only if checkbox remains enabled.
+            postTimer.Stop();
+
+            try
+            {
+                await ExecutarPostAsync(true); // automático
+            }
+            finally
+            {
+                if (chbxPost.Checked)
+                    postTimer.Start();
+            }
+        }
+
+
+
+
+        private void dgLeituras_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void label10_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtPostUrl_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void CompanyId_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void txtMac_TextChanged(object sender, EventArgs e)
+        {
+            // Remove ":" e "-" se existirem
+            string raw = txtMac.Text.Replace(":", "").Replace("-", "").ToUpper();
+
+            // Mantém apenas hexadecimal
+            raw = System.Text.RegularExpressions.Regex.Replace(raw, "[^0-9A-F]", "");
+
+            // Limita a 12 caracteres (MAC = 12 hex)
+            if (raw.Length > 12)
+                raw = raw.Substring(0, 12);
+
+            // Formata colocando ":" a cada 2 caracteres
+            var formatted = new System.Text.StringBuilder();
+
+            for (int i = 0; i < raw.Length; i++)
+            {
+                if (i > 0 && i % 2 == 0)
+                    formatted.Append(":");
+
+                formatted.Append(raw[i]);
+            }
+
+            txtMac.TextChanged -= txtMac_TextChanged;
+            txtMac.Text = formatted.ToString();
+            // move cursor para o fim após formatar
+            txtMac.SelectionStart = txtMac.Text.Length;
+            txtMac.TextChanged += txtMac_TextChanged;
+        }
+
+        private void txtIP_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void tab1_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            TabPage page = tab1.TabPages[e.Index];
+            Rectangle area = e.Bounds;
+
+            Color fundo = ColorTranslator.FromHtml("#B9D1EA");
+            Color texto = ColorTranslator.FromHtml("#202020");
+
+            using (Brush brush = new SolidBrush(fundo))
+            {
+                e.Graphics.FillRectangle(brush, area);
+            }
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                page.Text,
+                this.Font,
+                area,
+                texto,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter
+            );
+        }
+
+        private void btnExportarJson_Click(object sender, EventArgs e)
+        {
+            // Export current unique readings to a JSON file selected by user.
+            try
+            {
+                var dados = SelecionarPrimeirasLeiturasPorEpc(dgLeituras).ToList();
+
+                if (dados.Count == 0)
+                {
+                    MessageBox.Show("Nenhum item para exportar.");
+                    return;
+                }
+
+                using (SaveFileDialog sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "Arquivo JSON (*.json)|*.json";
+                    sfd.FileName = $"Leituras {DateTime.Now:dd-mm-yyyy/HH:mm}.json";
+
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        string json = JsonConvert.SerializeObject(dados, Formatting.Indented);
+
+                        File.WriteAllText(sfd.FileName, json, Encoding.UTF8);
+
+                        MessageBox.Show("Arquivo exportado com sucesso!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao exportar: " + ex.Message);
+            }
+        }
+
+
+        private void ExportarParaCsv(List<RfidPostModel> dados, string caminho)
+        {
+            // Create a CSV file from the readings and write it with UTF8 BOM.
+            var sb = new StringBuilder();
+
+            // Cabeçalho
+            sb.AppendLine("reading_reader_ip,reading_reader_mac,reading_antenna,reading_rssi,reading_epc_hex,reading_movement_type,reading_company_id");
+
+            foreach (var item in dados)
+            {
+                sb.AppendLine(string.Join(",",
+                    EscaparCsv(item.reading_reader_ip),
+                    EscaparCsv(item.reading_reader_mac),
+                    item.reading_antenna,
+                    item.reading_rssi,
+                    EscaparCsv(item.reading_epc_hex),
+                    item.reading_movement_type,
+                    item.reading_company_id
+                ));
+            }
+
+            // UTF8 com BOM → Excel abre corretamente
+            File.WriteAllText(caminho, sb.ToString(), new UTF8Encoding(true));
+        }
+
+        private string EscaparCsv(string valor)
+        {
+            if (string.IsNullOrEmpty(valor))
+                return "";
+
+            if (valor.Contains(",") || valor.Contains("\""))
+                return $"\"{valor.Replace("\"", "\"\"")}\"";
+
+            return valor;
+        }
+
+        private void btnExportarCSV_Click(object sender, EventArgs e)
+        {
+            // Export current unique readings to CSV using a SaveFileDialog.
+            try
+            {
+                var dados = SelecionarPrimeirasLeiturasPorEpc(dgLeituras).ToList();
+
+                if (dados.Count == 0)
+                {
+                    MessageBox.Show("Nenhum item para exportar.");
+                    return;
+                }
+
+                using (SaveFileDialog sfd = new SaveFileDialog())
+                {
+                    sfd.Filter = "Arquivo CSV (*.csv)|*.csv";
+                    sfd.FileName = $"Leituras {DateTime.Now:dd-mm-yyyy/HH:mm}.csv";
+
+                    if (sfd.ShowDialog() == DialogResult.OK)
+                    {
+                        ExportarParaCsv(dados, sfd.FileName);
+                        MessageBox.Show("Arquivo exportado com sucesso!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erro ao exportar CSV: " + ex.Message);
+            }
+        }
+
+        private void LimparLeituras()
+        {
+            // Clear UI and reader buffers of current readings.
+            dgLeituras.DataSource = null;
+            dgLeituras.Rows.Clear();
+            Leitura.Rows.Clear();
+
+            if (rbCom.Checked)
+                RFID.CFComApi.CFCom_ClearTagBuf();
+
+            if (rbHid.Checked)
+                RFID.CFHidApi.CFHid_ClearTagBuf();
+        }
+
+
+        private void btnLimparGrid_Click(object sender, EventArgs e)
+        {
+            if (dgLeituras.Rows.Count == 0)
+                return;
+
+
+                LimparLeituras();
+            
+        }
+
+        private void TimerPost_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            TimerPost.SelectedItem = 1;
         }
     }
 }
